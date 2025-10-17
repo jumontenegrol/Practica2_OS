@@ -6,9 +6,15 @@
 #include <fcntl.h>      
 #include <sys/types.h>  
 #include <sys/stat.h>   
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
-#define FIFO_IN  "/tmp/fifo_in"
-#define FIFO_OUT "/tmp/fifo_out"
+#define PORT 3535
+
+int fd,r;
+char buffer1[2048],entrada[100];
+struct sockaddr_in cliente;
 
 GtkWidget *entry_clave;
 GtkWidget *entry_nombre;
@@ -33,36 +39,63 @@ void on_search_clicked(GtkWidget *widget, gpointer data) {
     snprintf(nombre_val, sizeof(nombre_val), "%s", (nombre && strlen(nombre) > 0) ? nombre : "-");
     snprintf(id_val, sizeof(id_val), "%s", (id && strlen(id) > 0) ? id : "-");
 
-    int f_out = open(FIFO_IN, O_WRONLY);
-    if (f_out < 0) {
-        gtk_text_buffer_set_text(buffer, "Error al abrir FIFO de salida.\n", -1);
-        return;
-    }
-
     char mensaje[512];
     int bytes = snprintf(mensaje, sizeof(mensaje), "%s,%s,%s", clave, nombre_val, id_val);
     mensaje[bytes] = '\0';
-    write(f_out, mensaje, strlen(mensaje));
-    close(f_out);
 
-    int fd_in = open(FIFO_OUT, O_RDONLY);
-    if (fd_in < 0) {
-        perror("No se pudo abrir FIFO_OUT para leer");
+    //conectar al socket del servidor
+    fd = socket(AF_INET,SOCK_STREAM,0);
+    if(fd < 0){
+        perror("socket");
         return;
     }
 
-    FILE *fp = fdopen(fd_in, "r");
-    if (!fp) {
-        perror("Error en fdopen()");
-        close(fd_in);
+    //define client socket data
+    cliente.sin_family = AF_INET;
+    cliente.sin_port = htons(PORT);
+    cliente.sin_addr.s_addr = inet_addr("127.0.0.1");
+    bzero (&(cliente.sin_zero), 8); 
+
+    //hacer la conexion con el servidor
+    r = connect(fd, (struct sockaddr *)&cliente, sizeof(struct sockaddr_in));
+    if(r < 0){
+        perror("connect");
         return;
     }
 
-    char buffer1[4096];
-    while (fgets(buffer1, sizeof(buffer1), fp)) {
-        gtk_text_buffer_insert_at_cursor(buffer, buffer1, -1);
+    //enviar metodo
+    r = send(fd,"SEARCH",7,0);
+    if(r < 0){
+        perror("error send");
+        close(fd);
+        return;
     }
-    fclose(fp);
+    //esperar confirmacion metodo
+    r = recv(fd, buffer1, sizeof(buffer1), 0);
+        if(r < 0){
+            perror("error recv");
+        }else{
+            buffer1[r] = 0;
+            printf("%s\n",buffer1);
+            if(strcmp(buffer1,"Metodo no soportado")!=0){
+                //enviar parametros para consulta
+                r = send(fd,mensaje,sizeof(mensaje),0);
+                //recibir respuesta
+                while(r = recv(fd, buffer1, sizeof(buffer1), 0)){
+                    if(r < 0){
+                        perror("error recv");
+                        break;
+                    }else{
+                        buffer1[r] = 0;
+                        printf("%s",buffer1);
+                        gtk_text_buffer_insert_at_cursor(buffer, buffer1, -1);
+                    }
+                }
+            }
+        }
+
+    close(fd);
+    printf("Conexion cerrada\n\n");
 
     gtk_entry_set_text(GTK_ENTRY(entry_clave), "");
     gtk_entry_set_text(GTK_ENTRY(entry_nombre), "");
@@ -71,12 +104,29 @@ void on_search_clicked(GtkWidget *widget, gpointer data) {
 
 // ---------- NUEVO: AÑADIR DATOS ----------
 void on_add_data_clicked(GtkWidget *widget, gpointer user_data[]) {
-    GtkWidget *entry_add_clave = user_data[0];
+    /*GtkWidget *entry_add_clave = user_data[0];
     GtkWidget *entry_add_nombre = user_data[1];
     GtkWidget *entry_add_id = user_data[2];
-    GtkWidget *textview_add = user_data[3];  
+    GtkWidget *textview_add = user_data[3];  */
+    GtkWidget *entry_add_clave = GTK_WIDGET(user_data[0]);
+    GtkWidget *entry_add_nombre = GTK_WIDGET(user_data[1]);
+    GtkWidget *entry_add_id = GTK_WIDGET(user_data[2]);
+    GtkWidget *textview_add = GTK_WIDGET(user_data[3]);
+
+        // --- Validación de punteros ---
+    if (!GTK_IS_ENTRY(entry_add_clave) ||
+        !GTK_IS_ENTRY(entry_add_nombre) ||
+        !GTK_IS_ENTRY(entry_add_id) ||
+        !GTK_IS_TEXT_VIEW(textview_add)) {
+        g_print("Error: widgets no válidos en on_add_data_clicked()\n");
+        return;
+    }
 
     GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview_add));
+    if (!buffer) {
+        g_print("Error: no se pudo obtener el buffer del TextView.\n");
+        return;
+    }
 
     const char *clave = gtk_entry_get_text(GTK_ENTRY(entry_add_clave));
     const char *nombre = gtk_entry_get_text(GTK_ENTRY(entry_add_nombre));
@@ -87,16 +137,76 @@ void on_add_data_clicked(GtkWidget *widget, gpointer user_data[]) {
         return;
     }
 
-    FILE *fp = fopen("datos.csv", "a");
-    if (!fp) {
-        gtk_text_buffer_set_text(buffer, "Error al abrir el archivo CSV.\n", -1);
+    char nombre_val[128];
+    char id_val[128];
+    snprintf(nombre_val, sizeof(nombre_val), "%s", (nombre && strlen(nombre) > 0) ? nombre : "-");
+    snprintf(id_val, sizeof(id_val), "%s", (id && strlen(id) > 0) ? id : "-");
+    
+    // Reemplazar comas en nombre e id para evitar conflictos en CSV
+    for (int i = 0; nombre_val[i]; i++) {
+        if (nombre_val[i] == ',') nombre_val[i] = ' ';
+    }
+    for (int i = 0; id_val[i]; i++) {
+        if (id_val[i] == ',') id_val[i] = ' ';
+    }
+
+    //karthiga,21,9,2255153,Female,One Piece,TV,Manga,8.54,423868,91.0,35,"Action, Adventure, Comedy, Super Power, Drama, Fantasy, Shounen"
+    char mensaje[512];
+    int bytes = snprintf(mensaje, sizeof(mensaje), "%s,21,9,2255153,Female,%s,TV,%s,8.54,423868,91.0,35,Action", clave, nombre_val, id_val);
+
+    //conectar al socket del servidor
+    fd = socket(AF_INET,SOCK_STREAM,0);
+    if(fd < 0){
+        perror("socket");
         return;
     }
 
-    fprintf(fp, "%s,%s,%s\n", clave, nombre, id);
-    fclose(fp);
+    //define client socket data
+    cliente.sin_family = AF_INET;
+    cliente.sin_port = htons(PORT);
+    cliente.sin_addr.s_addr = inet_addr("127.0.0.1");
+    bzero (&(cliente.sin_zero), 8); 
 
-    gtk_text_buffer_set_text(buffer, "✅ Registro añadido correctamente.\n", -1);
+    //hacer la conexion con el servidor
+    r = connect(fd, (struct sockaddr *)&cliente, sizeof(struct sockaddr_in));
+    if(r < 0){
+        perror("connect");
+        return;
+    }
+
+    //enviar metodo
+    r = send(fd,"INSERT",7,0);
+    if(r < 0){
+        perror("error send");
+        close(fd);
+        return;
+    }
+    //esperar confirmacion metodo
+    r = recv(fd, buffer1, sizeof(buffer1), 0);
+        if(r < 0){
+            perror("error recv");
+        }else{
+            buffer1[r] = 0;
+            printf("%s\n",buffer1);
+            if(strcmp(buffer1,"Metodo no soportado")!=0){
+                //enviar parametros para consulta
+                r = send(fd,mensaje,strlen(mensaje),0);
+                //recibir respuesta
+                while(r = recv(fd, buffer1, sizeof(buffer1), 0)){
+                    if(r < 0){
+                        perror("error recv");
+                        break;
+                    }else{
+                        buffer1[r] = 0;
+                        printf("%s",buffer1);
+                        gtk_text_buffer_insert_at_cursor(buffer, buffer1, -1);
+                    }
+                }
+            }
+        }
+
+    close(fd);
+    printf("Conexion cerrada\n\n");
 
     gtk_entry_set_text(GTK_ENTRY(entry_add_clave), "");
     gtk_entry_set_text(GTK_ENTRY(entry_add_nombre), "");
@@ -109,6 +219,7 @@ void create_add_window(GtkWidget *widget, gpointer data) {
     GtkWidget *entry_add_clave, *entry_add_nombre, *entry_add_id;
     GtkWidget *button_add;
     GtkWidget *textview_add;
+    GtkWidget *scroll_add;
     GtkTextBuffer *buffer;
 
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -139,8 +250,31 @@ void create_add_window(GtkWidget *widget, gpointer data) {
     gtk_text_view_set_editable(GTK_TEXT_VIEW(textview_add), FALSE);
     buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview_add));
 
-    GtkWidget *user_data[4] = { entry_add_clave, entry_add_nombre, entry_add_id, GTK_WIDGET(buffer) };
-    g_signal_connect(button_add, "clicked", G_CALLBACK(on_add_data_clicked), user_data);
+    // Crear scrolled window para el textview
+    scroll_add = gtk_scrolled_window_new(NULL, NULL);
+    gtk_container_add(GTK_CONTAINER(scroll_add), textview_add);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll_add),
+                                   GTK_POLICY_AUTOMATIC,
+                                   GTK_POLICY_AUTOMATIC);
+
+    // Hacer que el área de texto y el scroll se expandan
+    gtk_widget_set_hexpand(scroll_add, TRUE);
+    gtk_widget_set_vexpand(scroll_add, TRUE);
+    gtk_widget_set_hexpand(textview_add, TRUE);
+    gtk_widget_set_vexpand(textview_add, TRUE);
+    // Tamaño mínimo para el área de texto
+    gtk_widget_set_size_request(scroll_add, 200, 100);
+
+        // Reserva memoria dinámica para user_data
+        GtkWidget **user_data = g_new(GtkWidget*, 4);
+        user_data[0] = entry_add_clave;
+        user_data[1] = entry_add_nombre;
+        user_data[2] = entry_add_id;
+        user_data[3] = textview_add;
+        g_signal_connect(button_add, "clicked", G_CALLBACK(on_add_data_clicked), user_data);
+
+        // Libera memoria de user_data al cerrar la ventana
+        g_signal_connect(window, "destroy", G_CALLBACK(g_free), user_data);
 
     gtk_grid_attach(GTK_GRID(grid), label1, 0, 0, 1, 1);
     gtk_grid_attach(GTK_GRID(grid), entry_add_clave, 1, 0, 1, 1);
@@ -149,7 +283,8 @@ void create_add_window(GtkWidget *widget, gpointer data) {
     gtk_grid_attach(GTK_GRID(grid), label3, 0, 2, 1, 1);
     gtk_grid_attach(GTK_GRID(grid), entry_add_id, 1, 2, 1, 1);
     gtk_grid_attach(GTK_GRID(grid), button_add, 0, 3, 2, 1);
-    gtk_grid_attach(GTK_GRID(grid), textview_add, 0, 4, 2, 1);
+    gtk_grid_attach(GTK_GRID(grid), scroll_add, 0, 4, 2, 1);
+    
 
     gtk_widget_show_all(window);
 }
