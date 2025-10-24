@@ -102,12 +102,8 @@ void on_search_clicked(GtkWidget *widget, gpointer data) {
     gtk_entry_set_text(GTK_ENTRY(entry_id), "");
 }
 
-// ---------- NUEVO: AÑADIR DATOS ----------
+// ---------- AÑADIR DATOS ----------
 void on_add_data_clicked(GtkWidget *widget, gpointer user_data[]) {
-    /*GtkWidget *entry_add_clave = user_data[0];
-    GtkWidget *entry_add_nombre = user_data[1];
-    GtkWidget *entry_add_id = user_data[2];
-    GtkWidget *textview_add = user_data[3];  */
     GtkWidget *entry_add_clave = GTK_WIDGET(user_data[0]);
     GtkWidget *entry_add_nombre = GTK_WIDGET(user_data[1]);
     GtkWidget *entry_add_id = GTK_WIDGET(user_data[2]);
@@ -150,7 +146,6 @@ void on_add_data_clicked(GtkWidget *widget, gpointer user_data[]) {
         if (id_val[i] == ',') id_val[i] = ' ';
     }
 
-    //karthiga,21,9,2255153,Female,One Piece,TV,Manga,8.54,423868,91.0,35,"Action, Adventure, Comedy, Super Power, Drama, Fantasy, Shounen"
     char mensaje[512];
     int bytes = snprintf(mensaje, sizeof(mensaje), "%s,21,9,2255153,Female,%s,TV,%s,8.54,423868,91.0,35,Action", clave, nombre_val, id_val);
 
@@ -262,7 +257,6 @@ void create_add_window(GtkWidget *widget, gpointer data) {
     gtk_widget_set_vexpand(scroll_add, TRUE);
     gtk_widget_set_hexpand(textview_add, TRUE);
     gtk_widget_set_vexpand(textview_add, TRUE);
-    // Tamaño mínimo para el área de texto
     gtk_widget_set_size_request(scroll_add, 200, 100);
 
         // Reserva memoria dinámica para user_data
