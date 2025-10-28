@@ -53,7 +53,7 @@ void on_search_clicked(GtkWidget *widget, gpointer data) {
     //define client socket data
     cliente.sin_family = AF_INET;
     cliente.sin_port = htons(PORT);
-    cliente.sin_addr.s_addr = inet_addr("127.0.0.1");
+    cliente.sin_addr.s_addr = inet_addr("172.20.10.4");
     bzero (&(cliente.sin_zero), 8); 
 
     //hacer la conexion con el servidor
@@ -124,6 +124,8 @@ void on_add_data_clicked(GtkWidget *widget, gpointer user_data[]) {
         return;
     }
 
+    gtk_text_buffer_set_text(buffer, "", -1);
+
     const char *clave = gtk_entry_get_text(GTK_ENTRY(entry_add_clave));
     const char *nombre = gtk_entry_get_text(GTK_ENTRY(entry_add_nombre));
     const char *id = gtk_entry_get_text(GTK_ENTRY(entry_add_id));
@@ -159,7 +161,7 @@ void on_add_data_clicked(GtkWidget *widget, gpointer user_data[]) {
     //define client socket data
     cliente.sin_family = AF_INET;
     cliente.sin_port = htons(PORT);
-    cliente.sin_addr.s_addr = inet_addr("127.0.0.1");
+    cliente.sin_addr.s_addr = inet_addr("172.20.10.4");
     bzero (&(cliente.sin_zero), 8); 
 
     //hacer la conexion con el servidor
