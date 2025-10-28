@@ -12,33 +12,33 @@ A continuación, se presenta una descripción detallada de los campos del datase
 
 - **username**
 
-- Descripción: El nombre de usuario del usuario que valoró el anime.
-- Tipo: Cadena de texto.
-- Ejemplo: karthiga.
+  - Descripción: El nombre de usuario del usuario que valoró el anime.
+  - Tipo: Cadena de texto.
+  - Ejemplo: karthiga.
 
 - **anime_id**
 
-- Descripción: El identificador único del anime.
-- Tipo: Número entero.
-- Ejemplo: 1557.
+  - Descripción: El identificador único del anime.
+  - Tipo: Número entero.
+  - Ejemplo: 1557.
 
 - **my_score**
 
-- Descripción: La puntuación otorgada por el usuario al anime.
-- Tipo: Número entero de 0-10.
-- Ejemplo: 8.
+  - Descripción: La puntuación otorgada por el usuario al anime.
+  - Tipo: Número entero de 0-10.
+  - Ejemplo: 8.
 
 - **user_id**
 
-- Descripción: El identificador único del usuario.
-- Tipo: número entero.
-- Ejemplo: 1897606.
+  - Descripción: El identificador único del usuario.
+  - Tipo: número entero.
+  - Ejemplo: 1897606.
 
 - **gender**
 
-- Descripción: Genero del usuario.
-- Tipo: Cadena de texto (Male, Female).
-- Ejemplo: Male.
+  - Descripción: Genero del usuario.
+  - Tipo: Cadena de texto (Male, Female).
+  - Ejemplo: Male.
 
 - **title**
 
@@ -48,27 +48,27 @@ A continuación, se presenta una descripción detallada de los campos del datase
 
 - **type**
 
-- Descripción: El tipo de anime (por ejemplo, serie de televisión, película, OVA, etc.).
-- Tipo: Cadena de texto.
-- Ejemplo: TV.
+  - Descripción: El tipo de anime (por ejemplo, serie de televisión, película, OVA, etc.).
+  - Tipo: Cadena de texto.
+  - Ejemplo: TV.
 
 - **source**
 
-- Descripción: El material original del anime (por ejemplo, manga, novela ligera, original, etc.).
-- Tipo: Cadena de texto.
-- Ejemplo: Manga.
+  - Descripción: El material original del anime (por ejemplo, manga, novela ligera, original, etc.).
+  - Tipo: Cadena de texto.
+  - Ejemplo: Manga.
 
 - **score**
 
-- Descripción: La puntuación general del anime.
-- Tipo: Número de punto flotante.
-- Ejemplo: 7.77.
+  - Descripción: La puntuación general del anime.
+  - Tipo: Número de punto flotante.
+  - Ejemplo: 7.77.
 
 - **scored_by**
 
-- Descripción: El número de usuarios que han calificado el anime.
-- Tipo: Número entero.
-- Ejemplo: 167968.
+  - Descripción: El número de usuarios que han calificado el anime.
+  - Tipo: Número entero.
+  - Ejemplo: 167968.
 
 ## 3. Criterios de Búsqueda Implementados
 
